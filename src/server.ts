@@ -1,21 +1,36 @@
 import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { UserController } from "./controller/UserController";
-import jwt from "jsonwebtoken";
+import { generateToken, verifyToken } from "./middleware/AuthMiddleware";
 const app = express();
 app.use(express.json());
 const port = 5000;
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 app.get("/", (_, res) => {
   res.status(200).send("Hello, World");
 });
 
-app.get("/users", async () => {
-  const users = await prisma.user.findMany();
-
-  return { users };
+app.get("/users", async (req: Request, res: Response) => {
+  const { limit } = req.body;
+  try {
+    const users = await UserController.getAllUsers(limit);
+    if (users !== null) {
+      res.status(200).json({
+        users,
+      });
+    } else {
+      res.status(404).json({
+        message: "Nenhum usuário encontrado.",
+      });
+    }
+  } catch (e: any) {
+    res.status(500).json({
+      erro: "Ocorreu um erro ao listar os usuários",
+      errorInfo: e.message,
+    });
+  }
 });
 
 app.post("/user-create", async (request: Request, response: Response) => {
@@ -26,7 +41,7 @@ app.post("/user-create", async (request: Request, response: Response) => {
       email,
       password,
     });
-    const token = jwt.sign({ userId }, "login_token", { expiresIn: "1h" });
+    const token = generateToken(userId);
     response
       .status(201)
       .json({ message: "Usuário criado com sucesso!", id: userId, token });
@@ -37,11 +52,36 @@ app.post("/user-create", async (request: Request, response: Response) => {
     });
   }
 });
-app.get("/user-login", async (request: Request, response: Response) => {
-  const { nameEmail, password, token } = request.body;
-  if (token) {
+app.get(
+  "/user-login",
+  verifyToken,
+  async (request: Request, response: Response) => {
+    const { email, password } = request.body;
+    const isTokenValid = request.body.isTokenValid;
+    try {
+      if (isTokenValid === false) {
+        const user = await UserController.fetchUserByEmail(email, password);
+        if (user) {
+          const token = generateToken(user.id);
+          const name = user.name;
+          response.status(200).json({
+            token,
+            valid: true,
+          });
+        } else {
+          response.status(401).json({ message: "Credenciais Incorretas" });
+        }
+      } else {
+        response.status(200).json({ valid: true });
+      }
+    } catch (e: any) {
+      response.status(500).json({
+        erro: "Erro ao tentar fazer login",
+        errorInfo: e.message,
+      });
+    }
   }
-});
+);
 
 app.post("/user-prefs", async (request: Request, response: Response) => {
   const { userId, prefNames } = request.body;

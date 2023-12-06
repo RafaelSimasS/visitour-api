@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { z } from "zod";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient, User } from "@prisma/client";
+import { comparePasswords } from "../utils/utils";
 
 interface userData {
   name: string;
@@ -44,8 +45,8 @@ export class UserController {
     try {
       const hash = await bcrypt.hash(plainPassword, saltRounds);
       return hash;
-    } catch (error) {
-      console.error("Erro ao gerar hash da senha:", error);
+    } catch (e) {
+      console.error("Erro ao gerar hash da senha:", e);
       throw new Error("Erro ao hashear senha");
     }
   }
@@ -110,6 +111,46 @@ export class UserController {
       throw new Error(
         "Um erro inesperado ocorreu ao tentar obter as preferências"
       );
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  static async fetchUserByEmail(
+    email: string,
+    password: string
+  ): Promise<User | null> {
+    try {
+      const User = await prisma.user.findFirst({
+        where: {
+          email: email,
+        },
+      });
+      if (!User) return null;
+      return (await comparePasswords(password, User.password)) ? User : null;
+    } catch (e) {
+      console.error(e);
+
+      throw new Error("Um erro inesperado ocorreu ao tentar fazer login");
+    } finally {
+      prisma.$disconnect();
+    }
+  }
+  static async getAllUsers(limit: number | null) {
+    try {
+      // await prisma.$connect();
+      if (limit === null) {
+        const allUsers = await prisma.user.findMany();
+        return allUsers;
+      } else {
+        const allUsers = await prisma.user.findMany({
+          take: limit,
+        });
+        return allUsers;
+      }
+    } catch (e) {
+      console.error("Erro ao buscar os usuários:", e);
+      throw new Error("Um erro inesperado ocorreu ao listar os usuários");
     } finally {
       await prisma.$disconnect();
     }
