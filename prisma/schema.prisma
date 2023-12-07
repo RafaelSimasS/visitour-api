@@ -19,6 +19,7 @@ model User {
   preferences     Preferences[]
   createdAt       DateTime          @default(now())
   UserPreferences UserPreferences[]
+  loginToken      String?           @unique
 }
 
 model Preferences {

@@ -16,7 +16,7 @@ const createUserSchema = z.object({
 });
 
 export class UserController {
-  static async createValidatedUser(userData: userData): Promise<number> {
+  static async createValidatedUser(userData: userData): Promise<User> {
     try {
       const { name, email, password } = createUserSchema.parse(userData);
       const hashedPassword = await this.hashPassword(password);
@@ -27,7 +27,7 @@ export class UserController {
           password: hashedPassword,
         },
       });
-      return User.id;
+      return User;
     } catch (error: any) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
@@ -170,6 +170,25 @@ export class UserController {
       throw new Error(`Erro ao deletar o usuário: ${e?.message}`);
     } finally {
       await prisma.$disconnect();
+    }
+  }
+  static async updateLoginToken(userId: number, token: string) {
+    try {
+      const user = await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          loginToken: token,
+        },
+      });
+      return user !== null ? true : false;
+    } catch (e: any) {
+      throw new Error(
+        "Ocorreu um erro inesperado ao atualizar o token de login"
+      );
+    } finally {
+      prisma.$disconnect();
     }
   }
 }

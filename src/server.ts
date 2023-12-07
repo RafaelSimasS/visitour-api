@@ -34,15 +34,21 @@ app.get("/users", async (req: Request, res: Response) => {
 app.post("/user-create", async (request: Request, response: Response) => {
   const { name, email, password } = request.body;
   try {
-    const userId: number = await UserController.createValidatedUser({
+    const user = await UserController.createValidatedUser({
       name,
       email,
       password,
     });
-    const token = generateToken(userId);
+    const userId: number = user.id;
+    const token: string = generateToken(userId);
+    try {
+      UserController.updateLoginToken(userId, token);
+    } catch (e: any) {
+      console.error(e);
+    }
     response
       .status(201)
-      .json({ message: "Usuário criado com sucesso!", id: userId, token });
+      .json({ message: "Usuário criado com sucesso!", user, token });
   } catch (error: any) {
     response.status(500).json({
       erro: "Erro ao criar usuário",
@@ -80,6 +86,9 @@ app.get(
   async (request: Request, response: Response) => {
     try {
       const { email, reqPassword, isTokenExists } = request.body;
+      if (isTokenExists) {
+        return response.status(200).json({ valid: true });
+      }
       const user = await UserController.fetchUserByEmailAndPassword(
         email,
         reqPassword
@@ -91,10 +100,13 @@ app.get(
         });
       }
       const { password, ...userWithoutPassword } = user;
-      if (isTokenExists) {
-        return response.status(200).json({ valid: true, userWithoutPassword });
-      }
+
       const token = generateToken(user.id);
+      try {
+        UserController.updateLoginToken(user.id, token);
+      } catch (e: any) {
+        console.error(e);
+      }
       return response.status(200).json({
         token,
         valid: true,
