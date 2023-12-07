@@ -1,12 +1,9 @@
 import express, { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
 import { UserController } from "./controller/UserController";
 import { generateToken, verifyToken } from "./middleware/AuthMiddleware";
 const app = express();
 app.use(express.json());
 const port = 5000;
-
-// const prisma = new PrismaClient();
 
 app.get("/", (_, res) => {
   res.status(200).send("Hello, World");
@@ -28,7 +25,8 @@ app.get("/users", async (req: Request, res: Response) => {
   } catch (e: any) {
     res.status(500).json({
       erro: "Ocorreu um erro ao listar os usuários",
-      errorInfo: e.message,
+      message: e.message,
+      type: "db_process",
     });
   }
 });
@@ -48,36 +46,65 @@ app.post("/user-create", async (request: Request, response: Response) => {
   } catch (error: any) {
     response.status(500).json({
       erro: "Erro ao criar usuário",
-      errorInfo: error.message,
+      message: error.message,
+      type: "db_process",
     });
+  }
+});
+app.delete("/delete-user", verifyToken, async (req: Request, res: Response) => {
+  const isTokenExists = req.body?.isTokenExists;
+  if (!isTokenExists) {
+    res.status(401).json({
+      erro: "Você não tem permisssão",
+      message: "Você precisa estar logado para poder fazer isso",
+      type: "authentication",
+    });
+  } else {
+    try {
+      const { name, email } = req.body;
+      const user = UserController.deleteUserByNameAndEmail(email, name);
+      res.status(200).json({
+        message: "Conta deletada com sucesso",
+      });
+    } catch (e: any) {
+      res.status(500).json({
+        message: "Ocorreu um erro ao tentar deletar a conta",
+        type: "db_process",
+      });
+    }
   }
 });
 app.get(
   "/user-login",
   verifyToken,
   async (request: Request, response: Response) => {
-    const { email, password } = request.body;
-    const isTokenValid = request.body.isTokenValid;
     try {
-      if (isTokenValid === false) {
-        const user = await UserController.fetchUserByEmail(email, password);
-        if (user) {
-          const token = generateToken(user.id);
-          const name = user.name;
-          response.status(200).json({
-            token,
-            valid: true,
-          });
-        } else {
-          response.status(401).json({ message: "Credenciais Incorretas" });
-        }
-      } else {
-        response.status(200).json({ valid: true });
+      const { email, reqPassword, isTokenExists } = request.body;
+      const user = await UserController.fetchUserByEmailAndPassword(
+        email,
+        reqPassword
+      );
+      if (!user) {
+        return response.status(401).json({
+          message: "Credenciais Incorretas",
+          type: "authentication",
+        });
       }
+      const { password, ...userWithoutPassword } = user;
+      if (isTokenExists) {
+        return response.status(200).json({ valid: true, userWithoutPassword });
+      }
+      const token = generateToken(user.id);
+      return response.status(200).json({
+        token,
+        valid: true,
+        userWithoutPassword,
+      });
     } catch (e: any) {
       response.status(500).json({
         erro: "Erro ao tentar fazer login",
-        errorInfo: e.message,
+        message: e.message,
+        type: "authentication",
       });
     }
   }
@@ -98,6 +125,7 @@ app.post("/user-prefs", async (request: Request, response: Response) => {
       response.status(500).json({
         erro: "Erro ao adicionar preferências",
         errors,
+        type: "db_process",
       });
     } else {
       response.status(200).json({
@@ -107,7 +135,8 @@ app.post("/user-prefs", async (request: Request, response: Response) => {
   } catch (error: any) {
     response.status(500).json({
       erro: "Erro ao processar preferências",
-      errorInfo: error.message,
+      message: error.message,
+      type: "db_process",
     });
   }
 });
@@ -123,7 +152,8 @@ app.get("/user-prefs", async (request: Request, response: Response) => {
   } catch (error: any) {
     response.status(500).json({
       erro: "Erro ao obter as preferências",
-      errorInfo: error.message,
+      message: error.message,
+      type: "db_process",
     });
   }
 });

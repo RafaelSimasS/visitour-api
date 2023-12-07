@@ -3,15 +3,17 @@ import jwt from "jsonwebtoken";
 export function verifyToken(req: Request, res: Response, next: NextFunction) {
   const token = req.headers["authorization"];
   if (!token) {
-    req.body.isTokenValid = false;
+    req.body.isTokenExists = false;
     next();
   } else {
     jwt.verify(token, "login_token", (err: any, decoded: any) => {
       if (err) {
-        return res.status(401).json({ message: "Token inválido" });
+        return res
+          .status(401)
+          .json({ message: "Token inválido", type: "token_invalid" });
       }
       req.body.userId = decoded.userId;
-      req.body.isTokenValid = true;
+      req.body.isTokenExists = true;
       next();
     });
   }

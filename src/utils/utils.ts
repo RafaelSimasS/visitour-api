@@ -7,6 +7,8 @@ export async function comparePasswords(
     const match = await brcypt.compare(plainPassword, hashedPassword);
     return match;
   } catch (e) {
+    console.error(e);
+
     throw new Error("Erro ao comparar as senhas");
   }
 }

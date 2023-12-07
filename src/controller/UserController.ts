@@ -116,7 +116,7 @@ export class UserController {
     }
   }
 
-  static async fetchUserByEmail(
+  static async fetchUserByEmailAndPassword(
     email: string,
     password: string
   ): Promise<User | null> {
@@ -151,6 +151,23 @@ export class UserController {
     } catch (e) {
       console.error("Erro ao buscar os usuários:", e);
       throw new Error("Um erro inesperado ocorreu ao listar os usuários");
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  static async deleteUserByNameAndEmail(email: string, name: string) {
+    try {
+      const deletedUser = await prisma.user.delete({
+        where: {
+          email: email,
+          name: name,
+        },
+      });
+
+      return deletedUser;
+    } catch (e: any) {
+      throw new Error(`Erro ao deletar o usuário: ${e?.message}`);
     } finally {
       await prisma.$disconnect();
     }
