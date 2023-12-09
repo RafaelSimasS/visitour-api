@@ -17,16 +17,49 @@ model User {
   email           String            @unique
   password        String
   preferences     Preferences[]
+  isAdmin         Boolean           @default(false)
   createdAt       DateTime          @default(now())
   UserPreferences UserPreferences[]
   loginToken      String?           @unique
+  Feedback        Feedback[]
 }
 
 model Preferences {
-  id              Int               @id @default(autoincrement())
-  name            String            @unique
-  users           User[]
-  UserPreferences UserPreferences[]
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  users             User[]
+  pontosTuristicos  PontoTuristico[]
+  UserPreferences   UserPreferences[]
+  PontosPreferences PontosPreferences[]
+}
+
+model PontoTuristico {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  descricao       String
+  dataInauguracao DateTime?
+  endereco        Endereco  @relation(fields: [enderecoId], references: [id])
+  enderecoId      Int
+
+  preferences       Preferences[]
+  pontosPreferences PontosPreferences[]
+}
+
+model Feedback {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  comment    String
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Endereco {
+  id               Int              @id @default(autoincrement())
+  cidade           String
+  estado           String
+  rua              String
+  pontosTuristicos PontoTuristico[]
 }
 
 model UserPreferences {
@@ -39,4 +72,15 @@ model UserPreferences {
   preference Preferences @relation(fields: [preferenceId], references: [id])
 
   @@unique([userId, preferenceId])
+}
+
+model PontosPreferences {
+  id               Int @id @default(autoincrement())
+  pontoTuristicoId Int
+  preferenceId     Int
+
+  pontoTuristico PontoTuristico @relation(fields: [pontoTuristicoId], references: [id])
+  preference     Preferences    @relation(fields: [preferenceId], references: [id])
+
+  @@unique([pontoTuristicoId, preferenceId])
 }
