@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 export function verifyToken(req: Request, res: Response, next: NextFunction) {
   const token = req.headers["authorization"];
+
   if (!token) {
     req.body.isTokenExists = false;
     next();
@@ -13,6 +14,7 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
           .json({ message: "Token inválido", type: "token_invalid" });
       }
       req.body.userId = decoded.userId;
+      req.body.token = token;
       req.body.isTokenExists = true;
       next();
     });

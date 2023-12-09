@@ -188,7 +188,22 @@ export class UserController {
         "Ocorreu um erro inesperado ao atualizar o token de login"
       );
     } finally {
-      prisma.$disconnect();
+      await prisma.$disconnect();
+    }
+  }
+
+  static async fetchUserByLoginToken(token: string): Promise<User | null> {
+    try {
+      const user = await prisma.user.findFirst({
+        where: {
+          loginToken: token,
+        },
+      });
+      return user;
+    } catch (error: any) {
+      throw new Error("Ocorreu um erro inesperado ao buscar usuário.");
+    } finally {
+      await prisma.$disconnect();
     }
   }
 }
