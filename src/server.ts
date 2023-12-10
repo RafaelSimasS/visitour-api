@@ -13,4 +13,4 @@ app.use(PreferencesRouter);
 app.get("/", (_, res) => {
   res.status(200).send('<div align="center"><h1>Visitour API v1.0</h1></div>');
 });
-app.listen(port, "192.168.1.12", () => console.log(`Running on port ${port}`));
+app.listen(port, () => console.log(`Running on port ${port}`));
