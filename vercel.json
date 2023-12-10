@@ -1,6 +1,13 @@
 {
+  "buidCommand": "npm run build",
   "version": 2,
-
+  "builds": [
+    {
+      "src": "dist/server.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["dist/**"] }
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",
