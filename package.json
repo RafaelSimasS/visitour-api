@@ -4,10 +4,12 @@
   "description": "",
   "main": "src/server.ts",
   "scripts": {
-    "build": "tsc",
     "start": "nodemon src/server.ts",
+    "build": "rimraf dist && tsc",
+    "dev": "npx ts-node-dev --respawn src/server.ts",
     "test": "ts-node src/server.ts",
-    "dev": "npx ts-node-dev --respawn src/server.ts"
+    "ts.check": "tsc --project tsconfig.json",
+    "add-build": "git add dist"
   },
   "keywords": [],
   "author": "",
@@ -25,11 +27,18 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.3",
     "nodemon": "^3.0.2",
+    "pre-commit": "^1.2.2",
     "prisma": "^5.7.0",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tsup": "^8.0.1",
     "tsx": "^4.6.2",
     "typescript": "^5.3.2"
-  }
+  },
+  "pre-commit": [
+    "ts.check",
+    "build",
+    "add-build"
+  ]
 }
