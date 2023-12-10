@@ -1,5 +1,4 @@
 {
-  "buidCommand": "npm run build",
   "version": 2,
   "builds": [
     {
