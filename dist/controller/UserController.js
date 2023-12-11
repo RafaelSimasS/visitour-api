@@ -52,6 +52,7 @@ class UserController {
         }
     }
     static async addUserPreferences(userId, prefName) {
+        let user;
         try {
             const prefId = await this.getPreferenceByName(prefName.toLowerCase());
             await prisma.userPreferences.create({
@@ -60,6 +61,35 @@ class UserController {
                     preferenceId: prefId,
                 },
             });
+            user = await prisma.user.findUnique({
+                where: { id: userId },
+                include: {
+                    preferences: true,
+                },
+            });
+            if (user) {
+                const existingPreferencesIds = user.preferences.map((preference) => ({
+                    id: preference.id,
+                })); // Formata os IDs das preferências existentes no formato esperado
+                const newPreferenceId = { id: prefId }; // Formata o novo ID da preferência no formato esperado
+                const updatedPreferences = [...existingPreferencesIds, newPreferenceId]; // Combina os IDs existentes com o novo ID
+                await prisma.user.update({
+                    where: {
+                        id: userId,
+                    },
+                    data: {
+                        preferences: {
+                            set: updatedPreferences, // Define os IDs das preferências atualizados
+                        },
+                    },
+                    include: {
+                        preferences: true,
+                    },
+                });
+            }
+            else {
+                throw new Error("Usuário não encontrado");
+            }
         }
         catch (error) {
             if (error instanceof client_1.Prisma.PrismaClientKnownRequestError) {
@@ -204,6 +234,47 @@ class UserController {
         }
         catch (error) {
             throw new Error("Ocorreu um erro inesperado ao buscar usuário.");
+        }
+        finally {
+            await prisma.$disconnect();
+        }
+    }
+    static async fetchPontosTuristicos(preferencesId) {
+        try {
+            const pontosTuristicos = await prisma.pontoTuristico.findMany({
+                where: {
+                    preferences: {
+                        some: {
+                            id: {
+                                in: preferencesId,
+                            },
+                        },
+                    },
+                },
+            });
+            return pontosTuristicos;
+        }
+        catch (error) {
+            console.error(error);
+            throw new Error("Erro ao buscar preferencias");
+        }
+        finally {
+            await prisma.$disconnect();
+        }
+    }
+    static async fetchPrefsByEmail(email) {
+        try {
+            const userPreferences = await prisma.user
+                .findUnique({
+                where: { email },
+            })
+                .preferences();
+            const preferencesIds = userPreferences?.map((pref) => pref.id);
+            return preferencesIds;
+        }
+        catch (error) {
+            console.error(error);
+            throw new Error("Erro ao buscar preferencias");
         }
         finally {
             await prisma.$disconnect();

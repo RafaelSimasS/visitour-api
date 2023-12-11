@@ -34,13 +34,15 @@ model Preferences {
 }
 
 model PontoTuristico {
-  id              Int       @id @default(autoincrement())
-  nome            String
-  descricao       String
-  dataInauguracao DateTime?
-  endereco        Endereco  @relation(fields: [enderecoId], references: [id])
-  enderecoId      Int
-
+  id                Int                 @id @default(autoincrement())
+  nome              String
+  descricao         String
+  dataInauguracao   DateTime?
+  endereco          Endereco            @relation(fields: [enderecoId], references: [id])
+  enderecoId        Int
+  imageUrl          String?
+  latitude          Float               @default(0.0)
+  longitude         Float               @default(0.0)
   preferences       Preferences[]
   pontosPreferences PontosPreferences[]
 }
