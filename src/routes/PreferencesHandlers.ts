@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { UserController } from "../controller/UserController";
+import { PreferencesController } from "../controller/PreferencesController";
 const PreferencesRouter = express.Router();
 
 PreferencesRouter.post(
@@ -54,6 +55,22 @@ PreferencesRouter.get(
         erro: "Erro ao obter as preferências",
         message: error.message,
         type: "db_process",
+      });
+    }
+  }
+);
+PreferencesRouter.get(
+  "/fetch-prefs-list",
+  async (request: Request, response: Response) => {
+    try {
+      const prefs = await PreferencesController.fetchPrefsList();
+
+      response.status(200).json({
+        prefs,
+      });
+    } catch (error: any) {
+      response.status(500).json({
+        message: error.message,
       });
     }
   }

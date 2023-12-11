@@ -148,5 +148,73 @@ UserAuthRoutes.post("/user-login", AuthMiddleware_1.verifyToken, async (request,
         });
     }
 });
+UserAuthRoutes.post("/fetch-user-data", async (req, res) => {
+    const { email, password } = req.body;
+    if (email && password) {
+        const user = await UserController_1.UserController.fetchUserWithPrefsByEmailAndPassword(email, password);
+        return res.status(200).json({
+            user,
+        });
+    }
+    else {
+        res.status(400).json({
+            messsage: "Email ou senha não fornecidos",
+        });
+    }
+});
+UserAuthRoutes.post("/update-user", async (req, res) => {
+    const { addPrefs, removePrefs, nome, email, senha, id, flags, } = req.body;
+    try {
+        if (flags.name) {
+            await UserController_1.UserController.updateNameById(id, nome);
+        }
+        if (flags.email) {
+            await UserController_1.UserController.updateEmailById(id, email);
+        }
+        if (flags.senha) {
+            await UserController_1.UserController.updatePasswordById(id, senha);
+        }
+        const errors = [];
+        if (addPrefs.length >= 1) {
+            for (const prefName of addPrefs) {
+                try {
+                    await UserController_1.UserController.addUserPreferences(id, prefName.toLowerCase());
+                }
+                catch (error) {
+                    errors.push({ prefName, error: error.message });
+                }
+            }
+        }
+        if (removePrefs.length >= 1) {
+            for (const prefName of removePrefs) {
+                try {
+                    await UserController_1.UserController.removeUserPreference(id, prefName.toLowerCase());
+                }
+                catch (error) {
+                    errors.push({ prefName, error: error.message });
+                }
+            }
+        }
+        if (errors.length > 0) {
+            res.status(500).json({
+                erro: "Erro ao atualizar preferências",
+                errors,
+                type: "db_process",
+            });
+        }
+        else {
+            res.status(200).json({
+                message: "Dados atualizados com sucesso",
+            });
+        }
+    }
+    catch (error) {
+        res.status(500).json({
+            erro: "Erro interno ao atualizar seus dados",
+            message: error.message,
+            type: "db_process",
+        });
+    }
+});
 exports.default = UserAuthRoutes;
 //# sourceMappingURL=UserAuth.js.map

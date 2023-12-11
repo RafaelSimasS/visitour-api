@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const UserController_1 = require("../controller/UserController");
+const PreferencesController_1 = require("../controller/PreferencesController");
 const PreferencesRouter = express_1.default.Router();
 PreferencesRouter.post("/user-prefs", async (request, response) => {
     const { userId, prefNames } = request.body;
@@ -52,6 +53,19 @@ PreferencesRouter.get("/user-prefs", async (request, response) => {
             erro: "Erro ao obter as preferências",
             message: error.message,
             type: "db_process",
+        });
+    }
+});
+PreferencesRouter.get("/fetch-prefs-list", async (request, response) => {
+    try {
+        const prefs = await PreferencesController_1.PreferencesController.fetchPrefsList();
+        response.status(200).json({
+            prefs,
+        });
+    }
+    catch (error) {
+        response.status(500).json({
+            message: error.message,
         });
     }
 });

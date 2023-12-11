@@ -40,6 +40,49 @@ class UserController {
             await prisma.$disconnect();
         }
     }
+    static async updateEmailById(id, newEmail) {
+        try {
+            await prisma.$connect();
+            const updatedUser = await prisma.user.update({
+                where: {
+                    id,
+                },
+                data: {
+                    email: newEmail,
+                },
+            });
+        }
+        catch (error) { }
+    }
+    static async updateNameById(id, newName) {
+        try {
+            await prisma.$connect();
+            const updatedUser = await prisma.user.update({
+                where: {
+                    id,
+                },
+                data: {
+                    name: newName,
+                },
+            });
+        }
+        catch (error) { }
+    }
+    static async updatePasswordById(id, newPass) {
+        try {
+            await prisma.$connect();
+            const hashedPassword = await this.hashPassword(newPass);
+            const updatedUser = await prisma.user.update({
+                where: {
+                    id,
+                },
+                data: {
+                    password: hashedPassword,
+                },
+            });
+        }
+        catch (error) { }
+    }
     static async hashPassword(plainPassword) {
         const saltRounds = 10;
         try {
@@ -54,6 +97,7 @@ class UserController {
     static async addUserPreferences(userId, prefName) {
         let user;
         try {
+            await prisma.$connect();
             const prefId = await this.getPreferenceByName(prefName.toLowerCase());
             await prisma.userPreferences.create({
                 data: {
@@ -98,6 +142,62 @@ class UserController {
                 }
             }
             throw new Error("Um erro inesperado ocorreu ao adicionar a preferência.");
+        }
+        finally {
+            await prisma.$disconnect();
+        }
+    }
+    static async removeUserPreference(userId, prefName) {
+        let user;
+        try {
+            await prisma.$connect();
+            const prefId = await this.getPreferenceByName(prefName.toLowerCase());
+            const existingUserPreference = await prisma.userPreferences.findFirst({
+                where: {
+                    userId: userId,
+                    preferenceId: prefId,
+                },
+            });
+            if (existingUserPreference) {
+                await prisma.userPreferences.delete({
+                    where: {
+                        id: existingUserPreference.id,
+                    },
+                });
+                user = await prisma.user.findUnique({
+                    where: { id: userId },
+                    include: {
+                        preferences: true,
+                    },
+                });
+                if (user) {
+                    const updatedPreferences = user.preferences
+                        .filter((preference) => preference.id !== prefId)
+                        .map((preference) => ({ id: preference.id }));
+                    await prisma.user.update({
+                        where: {
+                            id: userId,
+                        },
+                        data: {
+                            preferences: {
+                                set: updatedPreferences,
+                            },
+                        },
+                        include: {
+                            preferences: true,
+                        },
+                    });
+                }
+                else {
+                    throw new Error("Usuário não encontrado");
+                }
+            }
+            else {
+                throw new Error("A preferência não está associada a este usuário.");
+            }
+        }
+        catch (error) {
+            throw new Error(`Um erro inesperado ocorreu ao remover a preferência: ${error.message}`);
         }
         finally {
             await prisma.$disconnect();
@@ -151,6 +251,29 @@ class UserController {
             const User = await prisma.user.findFirst({
                 where: {
                     email: email,
+                },
+            });
+            if (!User)
+                return null;
+            return (await (0, utils_1.comparePasswords)(password, User.password)) ? User : null;
+        }
+        catch (e) {
+            console.error(e);
+            throw new Error("Um erro inesperado ocorreu ao tentar fazer login");
+        }
+        finally {
+            prisma.$disconnect();
+        }
+    }
+    static async fetchUserWithPrefsByEmailAndPassword(email, password) {
+        try {
+            await prisma.$connect();
+            const User = await prisma.user.findFirst({
+                where: {
+                    email: email,
+                },
+                include: {
+                    preferences: true,
                 },
             });
             if (!User)
